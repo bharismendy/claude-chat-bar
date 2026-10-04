@@ -3,18 +3,21 @@
 Une status line pour [Claude Code](https://code.claude.com), avec un chat de compagnie qui réagit à ce qui se passe dans la conversation.
 
 ```
-(=^･ω･^=)⌨ Mochi tape au clavier · chat niv.2 (47 xp)
-Opus 5.5 (high) │ ctx ▓▓▓▓░░░░░░ 42% │ $1.23 │ ⏱ 1h12
-agents 2 actifs │ +156/−23 │ 5h ▓░░░░ 24% ↻18h33  7j ▓▓░░░ 41% ↻jeu. 04h53
+(=^･ω･^=)⌨ Mochi niv.2 tape au clavier │ Opus 5.5 (high) │ ctx ▓▓▓▓░░░░░░ 42% │ $1.23 │ ⏱ 1h12 │ agents 2 actifs │ +156/−23 │ 5h ▓░░░░ 24% ↻18h33  7j ▓▓░░░ 41% ↻jeu. 04h53
 ```
 
 ## Ce qui est affiché
 
-| Ligne | Information |
-| - | - |
-| 1 | Le chat : son humeur, son nom, son stade de croissance et son expérience |
-| 2 | Modèle actif (et niveau d'effort), contexte utilisé, coût de la session, durée |
-| 3 | Sous-agents en cours, lignes ajoutées/supprimées, limites d'usage 5 h et 7 jours avec l'heure de réinitialisation |
+Tout tient sur une ligne, de gauche à droite :
+
+1. Le chat : son humeur, son nom et son niveau
+2. Le modèle actif et son niveau d'effort
+3. Le contexte utilisé
+4. Le coût de la session
+5. La durée de la session
+6. Les sous-agents en cours
+7. Les lignes ajoutées et supprimées
+8. Les limites d'usage 5 h et 7 jours, avec l'heure de réinitialisation
 
 Les barres passent du vert au jaune puis au rouge à mesure qu'elles se remplissent.
 
@@ -34,7 +37,7 @@ Son humeur suit la conversation, de la plus prioritaire à la moins prioritaire 
 | `(=^▽^=)✧` fier | plus de 300 lignes ajoutées |
 | `(=^･ω･^=)` ronronne | le reste du temps |
 
-Il gagne 1 xp par message envoyé et par outil utilisé, et grandit : chaton → chat (30 xp) → matou (120 xp) → chat légendaire (400 xp).
+Il gagne 1 xp par message envoyé et par outil utilisé, et monte de niveau : niv.1 à 0 xp, niv.2 à 30 xp, niv.3 à 120 xp, niv.4 à 400 xp.
 
 ## Installation
 

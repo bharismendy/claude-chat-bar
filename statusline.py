@@ -219,8 +219,7 @@ def render_pet(data):
 
     frames, caption, color = MOODS[pick_mood(data, activity, agents, idle)]
     frame = frames[int(time.time()) % 2]
-    pet = f"{c(frame, color, 'bold')} {c(PET_NAME, 'bold')} {c(caption, color)}"
-    pet += c(f" · {stage[1]} niv.{level} ({xp} xp)", "dim")
+    pet = f"{c(frame, color, 'bold')} {c(PET_NAME, 'bold')}{c(f' niv.{level}', 'dim')} {c(caption, color)}"
     return pet, agents
 
 
@@ -309,9 +308,16 @@ def main():
 
     sep = c(" │ ", "dim")
     pet, agents = render_pet(data)
-    print(pet)
-    print(sep.join([segment_model(data), segment_context(data), segment_cost(data), segment_duration(data)]))
-    print(sep.join([segment_agents(agents), segment_lines(data), segment_limits(data)]))
+    print(sep.join([
+        pet,
+        segment_model(data),
+        segment_context(data),
+        segment_cost(data),
+        segment_duration(data),
+        segment_agents(agents),
+        segment_lines(data),
+        segment_limits(data),
+    ]))
 
 
 if __name__ == "__main__":
