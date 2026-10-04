@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import time
+import unicodedata
 from datetime import datetime
 
 PET_NAME = os.environ.get("CLAUDE_PET_NAME", "Mochi")
@@ -20,6 +21,8 @@ TAIL_BYTES = 256 * 1024
 AGENT_ACTIVE_SECONDS = 30
 # Au-delà de N s sans activité, le chat s'endort.
 SLEEP_AFTER_SECONDS = 5 * 60
+# Colonnes laissées libres pour les marges que Claude Code ajoute autour de la barre.
+WIDTH_MARGIN = 4
 
 RESET = "\033[0m"
 COLORS = {
@@ -219,8 +222,11 @@ def render_pet(data):
 
     frames, caption, color = MOODS[pick_mood(data, activity, agents, idle)]
     frame = frames[int(time.time()) % 2]
-    pet = f"{c(frame, color, 'bold')} {c(PET_NAME, 'bold')}{c(f' niv.{level}', 'dim')} {c(caption, color)}"
-    return pet, agents
+    face = c(frame, color, "bold")
+    name = f"{c(PET_NAME, 'bold')}{c(f' niv.{level}', 'dim')}"
+    # Du plus complet au plus compact, pour s'adapter à la largeur du terminal.
+    variants = [f"{face} {name} {c(caption, color)}", f"{face} {name}", face]
+    return variants, agents
 
 
 # --------------------------------------------------------------------------
@@ -287,17 +293,67 @@ def segment_lines(data):
     return c(f"+{added}", "green") + c("/", "dim") + c(f"−{removed}", "red")
 
 
-def segment_limits(data):
-    parts = []
-    for key, label, with_day in (("five_hour", "5h", False), ("seven_day", "7j", True)):
-        window = get(data, "rate_limits", key)
-        if not window or window.get("used_percentage") is None:
+def segment_limit(data, key, label, with_day):
+    window = get(data, "rate_limits", key)
+    if not window or window.get("used_percentage") is None:
+        return None
+    text = c(f"{label} ", "dim") + bar(window["used_percentage"], width=5)
+    if window.get("resets_at"):
+        text += c(" ↻" + fmt_reset(window["resets_at"], with_day), "dim")
+    return text
+
+
+def visible_width(text):
+    """Largeur à l'écran : sans les codes ANSI, caractères larges comptés double."""
+    width, in_escape = 0, False
+    for ch in text:
+        if in_escape:
+            in_escape = ch != "m"
+        elif ch == "\033":
+            in_escape = True
+        elif not unicodedata.combining(ch):
+            width += 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+    return width
+
+
+def terminal_width():
+    try:
+        return int(os.environ["COLUMNS"]) - WIDTH_MARGIN
+    except (KeyError, ValueError):
+        return None
+
+
+def fit(pet_variants, segments, max_width, sep):
+    """Retire les segments les moins importants puis raccourcit le chat jusqu'à tenir.
+
+    segments : liste de (priorité, texte) dans l'ordre d'affichage ;
+    plus la priorité est grande, plus le segment disparaît tôt.
+    """
+    def line(pet, kept):
+        return sep.join([pet] + [text for _, text in kept])
+
+    kept = list(segments)
+    pet = pet_variants[0]
+    if max_width is None:
+        return line(pet, kept)
+    while visible_width(line(pet, kept)) > max_width and kept:
+        worst = max(kept, key=lambda seg: seg[0])
+        if worst[0] <= 2 and pet != pet_variants[-1]:
+            # Avant de sacrifier l'essentiel, on raccourcit le chat.
+            pet = pet_variants[pet_variants.index(pet) + 1]
             continue
-        text = c(f"{label} ", "dim") + bar(window["used_percentage"], width=5)
-        if window.get("resets_at"):
-            text += c(" ↻" + fmt_reset(window["resets_at"], with_day), "dim")
-        parts.append(text)
-    return "  ".join(parts) if parts else c("quota —", "dim")
+        kept.remove(worst)
+
+    # Les segments retirés peuvent laisser assez de place pour en remettre de plus petits,
+    # mais seulement si l'essentiel (priorité <= 2) est déjà affiché.
+    essentials_shown = all(seg in kept for seg in segments if seg[0] <= 2)
+    for seg in sorted(segments, key=lambda seg: seg[0]) if essentials_shown else []:
+        if seg in kept:
+            continue
+        candidate = [other for other in segments if other in kept or other is seg]
+        if visible_width(line(pet, candidate)) <= max_width:
+            kept = candidate
+    return line(pet, kept)
 
 
 def main():
@@ -307,17 +363,19 @@ def main():
         data = {}
 
     sep = c(" │ ", "dim")
-    pet, agents = render_pet(data)
-    print(sep.join([
-        pet,
-        segment_model(data),
-        segment_context(data),
-        segment_cost(data),
-        segment_duration(data),
-        segment_agents(agents),
-        segment_lines(data),
-        segment_limits(data),
-    ]))
+    pet_variants, agents = render_pet(data)
+    segments = [
+        (1, segment_model(data)),
+        (2, segment_context(data)),
+        (5, segment_cost(data)),
+        (10, segment_duration(data)),
+        (4 if agents else 9, segment_agents(agents)),
+        (7, segment_lines(data)),
+        (3, segment_limit(data, "five_hour", "5h", with_day=False)),
+        (6, segment_limit(data, "seven_day", "7j", with_day=True)),
+    ]
+    segments = [seg for seg in segments if seg[1]]
+    print(fit(pet_variants, segments, terminal_width(), sep))
 
 
 if __name__ == "__main__":

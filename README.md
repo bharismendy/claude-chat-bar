@@ -21,6 +21,10 @@ Tout tient sur une ligne, de gauche à droite :
 
 Les barres passent du vert au jaune puis au rouge à mesure qu'elles se remplissent.
 
+### Terminal étroit
+
+Quand la ligne ne tient pas dans la largeur du terminal, les infos les moins utiles disparaissent dans cet ordre : durée, `agents 0`, lignes modifiées, limite 7 jours, coût, agents actifs, limite 5 h. Ensuite le chat perd sa légende, puis son nom ; le modèle et le contexte sont masqués en dernier. Une info masquée revient si elle tient dans la place libérée.
+
 ## Le chat
 
 Son humeur suit la conversation, de la plus prioritaire à la moins prioritaire :
